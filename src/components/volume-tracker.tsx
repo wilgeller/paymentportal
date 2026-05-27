@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import {
   Area,
@@ -17,14 +17,10 @@ import { Button } from "@/components/ui/button";
 import { ErrorBanner } from "@/components/error-banner";
 import { useToast } from "@/components/toast";
 import { formatCurrency } from "@/lib/utils";
-import { presetToRange } from "@/lib/date-range";
 import type { VolumeSeriesResponse } from "@/lib/whop/volume-series";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
-
-function trackerKey(from: string, to: string) {
-  return `/api/tracker?from=${from}&to=${to}&bucket=day`;
-}
+const TRACKER_KEY = "/api/tracker?from=all&bucket=day";
 
 function formatRelative(updatedAt?: string, _now?: number): string {
   if (!updatedAt) return "—";
@@ -103,12 +99,10 @@ export function VolumeTracker() {
     return () => clearInterval(interval);
   }, []);
 
-  const range = useMemo(() => presetToRange("30d"), []);
-  const swrKey = trackerKey(range.from, range.to);
   const { data, error, isLoading, isValidating, mutate } =
     useSWR<VolumeSeriesResponse>(
-      swrKey,
-      () => apiFetch<VolumeSeriesResponse>(swrKey),
+      TRACKER_KEY,
+      () => apiFetch<VolumeSeriesResponse>(TRACKER_KEY),
       {
         refreshInterval: REFRESH_INTERVAL_MS,
         revalidateOnFocus: true,
@@ -195,7 +189,12 @@ export function VolumeTracker() {
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-black">Volume over time</h2>
           <p className="text-sm text-black/60">
-            Cumulative volume across the last 30 days
+            All-time cumulative volume{data?.firstPaymentAt
+              ? ` since ${new Date(data.firstPaymentAt).toLocaleDateString(
+                  "en-US",
+                  { month: "short", day: "numeric", year: "numeric" },
+                )}`
+              : ""}
           </p>
         </div>
 

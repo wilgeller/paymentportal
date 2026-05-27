@@ -7,19 +7,15 @@ export const dynamic = "force-dynamic";
 const VALID_BUCKETS: Bucket[] = ["hour", "day"];
 
 export async function GET(request: NextRequest) {
-  const from = request.nextUrl.searchParams.get("from");
-  const to = request.nextUrl.searchParams.get("to");
+  const fromParam = request.nextUrl.searchParams.get("from");
+  const toParam = request.nextUrl.searchParams.get("to");
   const bucketParam = request.nextUrl.searchParams.get("bucket") ?? "day";
   const bucket = (VALID_BUCKETS.includes(bucketParam as Bucket)
     ? bucketParam
     : "day") as Bucket;
 
-  if (!from || !to) {
-    return NextResponse.json(
-      { error: { type: "invalid_request", message: "from and to are required" } },
-      { status: 400 },
-    );
-  }
+  const to = toParam ?? new Date().toISOString();
+  const from = fromParam && fromParam !== "all" ? fromParam : null;
 
   try {
     const series = await fetchVolumeSeries(from, to, bucket);

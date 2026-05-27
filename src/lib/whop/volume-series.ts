@@ -20,6 +20,7 @@ export interface VolumeSeriesResponse {
   from: string;
   to: string;
   bucket: Bucket;
+  firstPaymentAt: string | null;
 }
 
 async function fetchPaidPage(after?: string) {
@@ -51,16 +52,18 @@ function bucketStepMs(bucket: Bucket): number {
 }
 
 export async function fetchVolumeSeries(
-  from: string,
+  from: string | null,
   to: string,
   bucket: Bucket,
 ): Promise<VolumeSeriesResponse> {
-  const fromMs = new Date(from).getTime();
+  const fromMs = from ? new Date(from).getTime() : Number.NEGATIVE_INFINITY;
   const toMs = new Date(to).getTime();
   const planCache = new Map<string, PlanDetails>();
   const bucketTotals = new Map<number, number>();
   let totalVolume = 0;
+  let firstPaymentMs: number | null = null;
   let after: string | undefined;
+  const lowerBoundForFilter = from ?? new Date(0).toISOString();
 
   do {
     const page = await fetchPaidPage(after);
@@ -79,12 +82,23 @@ export async function fetchVolumeSeries(
         continue;
       }
 
-      if (!(await shouldIncludeInTotalVolume(payment, planCache, getPlan, from, to))) {
+      if (
+        !(await shouldIncludeInTotalVolume(
+          payment,
+          planCache,
+          getPlan,
+          lowerBoundForFilter,
+          to,
+        ))
+      ) {
         continue;
       }
 
       const amount = Number(payment.total) || 0;
       totalVolume += amount;
+      if (firstPaymentMs === null || paidMs < firstPaymentMs) {
+        firstPaymentMs = paidMs;
+      }
 
       const key = bucketStart(paidAt, bucket);
       bucketTotals.set(key, (bucketTotals.get(key) ?? 0) + amount);
@@ -98,8 +112,11 @@ export async function fetchVolumeSeries(
   } while (after);
 
   const step = bucketStepMs(bucket);
-  const firstBucket = bucketStart(from, bucket);
-  const lastBucket = bucketStart(to, bucket);
+  const seriesFromMs = from
+    ? new Date(from).getTime()
+    : firstPaymentMs ?? toMs;
+  const firstBucket = bucketStart(new Date(seriesFromMs).toISOString(), bucket);
+  const lastBucket = bucketStart(new Date(toMs).toISOString(), bucket);
   const points: VolumePoint[] = [];
   let cumulative = 0;
 
@@ -117,8 +134,9 @@ export async function fetchVolumeSeries(
     totalVolume,
     points,
     updatedAt: new Date().toISOString(),
-    from,
+    from: from ?? new Date(seriesFromMs).toISOString(),
     to,
     bucket,
+    firstPaymentAt: firstPaymentMs ? new Date(firstPaymentMs).toISOString() : null,
   };
 }

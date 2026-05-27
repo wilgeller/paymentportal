@@ -136,6 +136,9 @@ export function VolumeTracker() {
   const animatedValue = useAnimatedNumber(target);
   const points = data?.points ?? [];
   const maxBucketVolume = points.reduce((m, p) => Math.max(m, p.volume), 0);
+  const last30DayVolume = points
+    .slice(-30)
+    .reduce((sum, p) => sum + p.volume, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -166,6 +169,13 @@ export function VolumeTracker() {
 
         <p className="mt-6 font-mono text-6xl font-semibold tracking-tight text-black tabular-nums sm:text-7xl lg:text-8xl">
           {formatCurrency(animatedValue)}
+        </p>
+
+        <p className="mt-3 text-sm text-black/60">
+          <span className="font-medium text-black/80">
+            {formatCurrency(last30DayVolume)}
+          </span>{" "}
+          in the last 30 days
         </p>
 
         <p className="mt-4 flex items-center gap-2 text-sm text-black/60">

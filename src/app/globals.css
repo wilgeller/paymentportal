@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #000000;
+  --brand: #afd9bc;
+  --brand-light: #dcf4e3;
+  --brand-dark: #93c9a9;
+  --brand-muted: #ecf8f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-muted: var(--brand-muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100%;
+}
+
+.rdp-light {
+  --rdp-accent-color: var(--brand);
+  --rdp-accent-background-color: var(--brand-muted);
+  color: #000000;
+}
+
+.rdp-light .rdp-day_button:hover {
+  background: var(--brand-muted);
+}
+
+.rdp-light .rdp-selected .rdp-day_button {
+  background: var(--brand);
+  color: #000000;
+}

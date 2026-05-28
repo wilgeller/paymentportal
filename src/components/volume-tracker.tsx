@@ -20,7 +20,9 @@ import { formatCurrency } from "@/lib/utils";
 import type { VolumeSeriesResponse } from "@/lib/whop/volume-series";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
-const TRACKER_KEY = "/api/tracker?from=all&bucket=day";
+const CURRENT_YEAR = new Date().getUTCFullYear();
+const YEAR_START_ISO = new Date(Date.UTC(CURRENT_YEAR, 0, 1)).toISOString();
+const TRACKER_KEY = `/api/tracker?from=${YEAR_START_ISO}&bucket=day`;
 
 function formatRelative(updatedAt?: string, _now?: number): string {
   if (!updatedAt) return "—";
@@ -151,7 +153,7 @@ export function VolumeTracker() {
       <section className="rounded-2xl border border-black/10 bg-white p-8 shadow-sm sm:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-black/50">
-            Live total volume
+            {CURRENT_YEAR} total volume
           </p>
           <Button
             variant="secondary"
@@ -197,12 +199,7 @@ export function VolumeTracker() {
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-black">Volume over time</h2>
           <p className="text-sm text-black/60">
-            All-time cumulative volume{data?.firstPaymentAt
-              ? ` since ${new Date(data.firstPaymentAt).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", year: "numeric" },
-                )}`
-              : ""}
+            Cumulative volume year-to-date ({CURRENT_YEAR})
           </p>
         </div>
 

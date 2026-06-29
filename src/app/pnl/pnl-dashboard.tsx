@@ -149,14 +149,16 @@ export function PnlDashboard({
         <StatCard
           label="Recurring / Month"
           value={formatCurrency(
-            data.recurring.reduce((s, r) => s + r.amount, 0),
+            data.recurring
+              .filter((r) => r.category !== "Collabs")
+              .reduce((s, r) => s + r.amount, 0),
           )}
         />
       </div>
 
       {!selectedMonth && <MonthlyChart monthlyTotals={data.monthlyTotals} />}
       <SpendByCategory categories={filtered.byCategory} totalSpend={filtered.totalSpend} />
-      <RecurringTransactions recurring={data.recurring} />
+      <RecurringTransactions recurring={data.recurring.filter((r) => r.category !== "Collabs")} />
     </div>
   );
 }

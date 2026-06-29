@@ -23,6 +23,31 @@ const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const CURRENT_YEAR = new Date().getUTCFullYear();
 const YEAR_START_ISO = new Date(Date.UTC(CURRENT_YEAR, 0, 1)).toISOString();
 const TRACKER_KEY = `/api/tracker?from=${YEAR_START_ISO}&bucket=day`;
+const STORAGE_KEY = "whop_volume_tracker_cache";
+
+function loadCachedData(): VolumeSeriesResponse | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as VolumeSeriesResponse & { _year?: number };
+    if (parsed._year !== CURRENT_YEAR) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveCachedData(data: VolumeSeriesResponse): void {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...data, _year: CURRENT_YEAR }),
+    );
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
 
 function formatRelative(updatedAt?: string, _now?: number): string {
   if (!updatedAt) return "—";
@@ -106,9 +131,13 @@ export function VolumeTracker() {
       TRACKER_KEY,
       () => apiFetch<VolumeSeriesResponse>(TRACKER_KEY),
       {
+        fallbackData: loadCachedData(),
         refreshInterval: REFRESH_INTERVAL_MS,
         revalidateOnFocus: true,
         keepPreviousData: true,
+        onSuccess: (freshData) => {
+          saveCachedData(freshData);
+        },
         onError: (err) => {
           if (err instanceof ClientApiError) {
             if (err.status === 401 || err.payload.error?.invalidKey) {

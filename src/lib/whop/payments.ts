@@ -1,6 +1,6 @@
 import { assertWhopConfig } from "./config";
 import { whopRequest } from "./client";
-import { paymentPaidAt } from "./date-utils";
+import { inRange, paymentPaidAt } from "./date-utils";
 import {
   shouldIncludeInTotalVolume,
   shouldIncludePayment,
@@ -84,6 +84,9 @@ export async function paginateFilteredPayments(options: {
     hasNextPage = page.page_info.has_next_page;
 
     for (const payment of page.data) {
+      if (!inRange(paymentPaidAt(payment), options.from, options.to)) {
+        continue;
+      }
       if (!(await shouldIncludePayment(payment, planCache, getPlan))) {
         continue;
       }

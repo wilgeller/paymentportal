@@ -6,6 +6,10 @@ interface CategoryRule {
 
 const RULES: CategoryRule[] = [
   {
+    category: "Collabs",
+    merchants: ["foodfluence", "sanwan", "whop"],
+  },
+  {
     category: "Software & SaaS",
     merchants: [
       "vercel", "github", "slack", "notion", "figma", "linear", "google",

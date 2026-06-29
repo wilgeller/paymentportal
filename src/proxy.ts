@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+const isPnlRoute = createRouteMatcher(["/pnl(.*)", "/api/pnl(.*)"]);
 const isApiRoute = createRouteMatcher(["/api/(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (isPublicRoute(request)) return;
+  if (isPublicRoute(request) || isPnlRoute(request)) return;
 
   if (isApiRoute(request)) {
     const { userId } = await auth();

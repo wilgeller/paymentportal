@@ -48,4 +48,5 @@ export interface PnlData {
   recurring: MonthlyRecurring[];
   months: string[];
   monthlyTotals: { month: string; total: number }[];
+  transactions: CategorizedTransaction[];
 }

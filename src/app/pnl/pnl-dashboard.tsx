@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PnlData } from "@/lib/brex/types";
+import { filterByMonth } from "@/lib/brex/analyze";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { SpendByCategory } from "./spend-by-category";
 import { RecurringTransactions } from "./recurring-transactions";
 import { MonthlyChart } from "./monthly-chart";
+
+function formatMonthLabel(month: string): string {
+  const [year, m] = month.split("-");
+  const date = new Date(Number(year), Number(m) - 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
 
 export function PnlDashboard({
   password,
@@ -15,6 +23,7 @@ export function PnlDashboard({
   onAuthError: () => void;
 }) {
   const [data, setData] = useState<PnlData | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -72,31 +81,70 @@ export function PnlDashboard({
     );
   }
 
-  if (!data) return null;
+  const filtered = useMemo(
+    () => (data ? filterByMonth(data, selectedMonth) : null),
+    [data, selectedMonth],
+  );
+
+  if (!data || !filtered) return null;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-8 bg-background px-6 py-10">
-      <header>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-black/70">
-          Whop
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black">
-          P&L Viewer
-        </h1>
-        <p className="mt-2 text-sm text-black/60">
-          Last 3 months &middot; {data.transactionCount} transactions
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-black/70">
+            Whop
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black">
+            P&L Viewer
+          </h1>
+          <p className="mt-2 text-sm text-black/60">
+            {selectedMonth ? formatMonthLabel(selectedMonth) : "Last 3 months"}{" "}
+            &middot; {filtered.transactionCount} transactions
+          </p>
+        </div>
+        <div className="flex rounded-lg border border-black/10 bg-white p-1">
+          <button
+            onClick={() => setSelectedMonth(null)}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-sm transition-colors",
+              !selectedMonth
+                ? "bg-brand text-black"
+                : "text-black/60 hover:text-black",
+            )}
+          >
+            All
+          </button>
+          {data.months.map((m) => (
+            <button
+              key={m}
+              onClick={() => setSelectedMonth(m)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm transition-colors",
+                selectedMonth === m
+                  ? "bg-brand text-black"
+                  : "text-black/60 hover:text-black",
+              )}
+            >
+              {formatMonthLabel(m)}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total Spend" value={formatCurrency(data.totalSpend)} />
+        <StatCard label="Total Spend" value={formatCurrency(filtered.totalSpend)} />
         <StatCard
-          label="Avg / Month"
-          value={formatCurrency(
-            data.monthlyTotals.length
-              ? data.totalSpend / data.monthlyTotals.length
-              : 0,
-          )}
+          label={selectedMonth ? "Transactions" : "Avg / Month"}
+          value={
+            selectedMonth
+              ? String(filtered.transactionCount)
+              : formatCurrency(
+                  data.monthlyTotals.length
+                    ? data.totalSpend / data.monthlyTotals.length
+                    : 0,
+                )
+          }
         />
         <StatCard
           label="Recurring / Month"
@@ -106,8 +154,8 @@ export function PnlDashboard({
         />
       </div>
 
-      <MonthlyChart monthlyTotals={data.monthlyTotals} />
-      <SpendByCategory categories={data.byCategory} totalSpend={data.totalSpend} />
+      {!selectedMonth && <MonthlyChart monthlyTotals={data.monthlyTotals} />}
+      <SpendByCategory categories={filtered.byCategory} totalSpend={filtered.totalSpend} />
       <RecurringTransactions recurring={data.recurring} />
     </div>
   );

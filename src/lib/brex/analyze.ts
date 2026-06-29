@@ -22,6 +22,45 @@ function normalizeMerchant(raw: string): string {
     .trim();
 }
 
+export function filterByMonth(
+  data: PnlData,
+  month: string | null,
+): PnlData {
+  if (!month) return data;
+
+  const filtered = data.transactions.filter((t) => {
+    const d = new Date(t.posted_at_date);
+    const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return m === month;
+  });
+
+  const totalSpend =
+    filtered.reduce((s, t) => s + Math.abs(t.amount.amount), 0) / 100;
+
+  const categoryMap = new Map<string, CategorizedTransaction[]>();
+  for (const t of filtered) {
+    const list = categoryMap.get(t.category) ?? [];
+    list.push(t);
+    categoryMap.set(t.category, list);
+  }
+
+  const byCategory: CategorySummary[] = Array.from(categoryMap.entries())
+    .map(([category, txns]) => ({
+      category,
+      total: txns.reduce((s, t) => s + Math.abs(t.amount.amount), 0) / 100,
+      count: txns.length,
+      transactions: txns,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    ...data,
+    totalSpend,
+    transactionCount: filtered.length,
+    byCategory,
+  };
+}
+
 export function analyze(transactions: BrexTransaction[]): PnlData {
   const purchases = transactions.filter(
     (t) => t.type === "PURCHASE" || t.type === "REFUND",
@@ -101,5 +140,6 @@ export function analyze(transactions: BrexTransaction[]): PnlData {
     recurring,
     months,
     monthlyTotals,
+    transactions: categorized,
   };
 }
